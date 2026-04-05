@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-title" content="家計簿">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>家計簿</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F5F4F0;
+            --surface: #FFFFFF;
+            --surface2: #F0EEE8;
+            --border: #E8E5DC;
+            --text-primary: #1A1814;
+            --text-secondary: #7A766A;
+            --text-muted: #B0AA9E;
+            --accent-red: #C0392B;
+            --accent-red-soft: #FAF0EE;
+            --accent-red-mid: #F5D5D0;
+            --accent-blue: #2563A8;
+            --accent-blue-soft: #EEF3FA;
+            --accent-blue-mid: #D0DEEF;
+            --accent-green: #1A7A4A;
+            --accent-green-soft: #EEF7F2;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            padding-bottom: 80px;
+            min-height: 100vh;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .hidden { display: none !important; }
+
+        /* ====== HEADER ====== */
+        .app-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+        .header-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 10px 16px 0;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+        .type-toggle {
+            display: flex;
+            gap: 8px;
+            padding: 10px 16px 14px;
+            justify-content: center;
+        }
+        .type-btn {
+            padding: 8px 28px;
+            border-radius: 99px;
+            font-size: 13px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            letter-spacing: 0.03em;
+        }
+        .type-btn.expense-active { background: var(--accent-red); color: #fff; }
+        .type-btn.income-active { background: var(--accent-blue); color: #fff; }
+        .type-btn.inactive { background: var(--surface2); color: var(--text-muted); }
+
+        /* ====== EDIT MODE BANNER ====== */
+        #edit-banner {
+            background: #FFF8E1;
+            border: 1.5px solid #FFD54F;
+            border-radius: var(--radius-sm);
+            margin: 12px 16px 0;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #edit-banner .banner-icon { font-size: 18px; }
+        #edit-banner .banner-text { font-size: 12px; color: #795548; font-weight: 600; flex: 1; }
+        #cancel-edit-btn {
+            font-size: 11px;
+            font-weight: 700;
+            color: #795548;
+            background: rgba(121,85,72,0.1);
+            border: none;
+            border-radius: 99px;
+            padding: 4px 12px;
+            cursor: pointer;
+        }
+
+        /* ====== INPUT SECTION ====== */
+        .section-padding { padding: 16px; }
+        .input-card {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .amount-area {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .amount-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-family: 'DM Mono', monospace;
+            margin-bottom: 8px;
+        }
+        .amount-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+        }
+        .currency-symbol {
+            font-size: 22px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            line-height: 1;
+            padding-bottom: 4px;
+        }
+        .currency-symbol.expense { color: var(--accent-red); }
+        .currency-symbol.income { color: var(--accent-blue); }
+        #amount {
+            flex: 1;
+            font-size: 42px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            text-align: right;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+        #amount::placeholder { color: var(--border); }
+
+        .meta-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        .meta-cell {
+            padding: 12px 20px;
+        }
+        .meta-cell:first-child { border-right: 1px solid var(--border); }
+        .meta-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-family: 'DM Mono', monospace;
+            margin-bottom: 4px;
+        }
+        .meta-input {
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text-primary);
+            width: 100%;
+        }
+        .meta-input::placeholder { color: var(--text-muted); }
+
+        /* ====== CATEGORY AREA ====== */
+        .cat-section { margin-top: 16px; }
+        .cat-groups {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            margin-bottom: 12px;
+        }
+        .cat-groups::-webkit-scrollbar { display: none; }
+        .group-btn {
+            white-space: nowrap;
+            padding: 7px 18px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            letter-spacing: 0.03em;
+        }
+        .group-btn.active {
+            background: var(--text-primary);
+            color: #fff;
+            border-color: var(--text-primary);
+        }
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .cat-btn {
+            padding: 12px 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            line-height: 1.3;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+        .cat-btn.expense-cat:active, .cat-btn.expense-cat.pressed {
+            background: var(--accent-red);
+            color: #fff;
+            border-color: var(--accent-red);
+            transform: scale(0.96);
+        }
+        .cat-btn.income-cat:active, .cat-btn.income-cat.pressed {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: var(--accent-blue);
+            transform: scale(0.96);
+        }
+
+        /* ====== REPORT HEADER ====== */
+        .report-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            padding: 14px 16px;
+        }
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        .month-nav-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 99px;
+            border: 1.5px solid var(--border);
+            background: var(--surface2);
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .month-nav-btn:active { background: var(--text-primary); color: #fff; border-color: var(--text-primary); }
+        #report-month {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .summary-card {
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            text-align: center;
+        }
+        .summary-card.income { background: var(--accent-blue-soft); }
+        .summary-card.expense { background: var(--accent-red-soft); }
+        .summary-card.balance { background: var(--surface2); }
+        .summary-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            margin-bottom: 4px;
+            font-family: 'DM Mono', monospace;
+        }
+        .summary-card.income .summary-label { color: var(--accent-blue); }
+        .summary-card.expense .summary-label { color: var(--accent-red); }
+        .summary-card.balance .summary-label { color: var(--text-secondary); }
+        .summary-value {
+            font-size: 13px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+        }
+        .summary-card.income .summary-value { color: var(--accent-blue); }
+        .summary-card.expense .summary-value { color: var(--accent-red); }
+
+        /* ====== REPORT LIST ====== */
+        #report-content { padding: 16px; }
+        .report-item {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            -webkit-user-select: none;
+        }
+        .report-item:active { transform: scale(0.98); box-shadow: none; }
+        .report-item-left {}
+        .report-cat-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+        .report-bar-wrap {
+            width: 120px;
+            height: 3px;
+            background: var(--border);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+        .report-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: var(--accent-blue);
+            transition: width 0.4s ease;
+        }
+        .report-item-amount {
+            font-size: 15px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-primary);
+        }
+
+        /* ====== MODAL ====== */
+        #modal-detail {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 50;
+            display: flex;
+            align-items: flex-end;
+            backdrop-filter: blur(2px);
+        }
+        .modal-sheet {
+            background: var(--surface);
+            width: 100%;
+            border-radius: 24px 24px 0 0;
+            max-height: 82vh;
+            overflow-y: auto;
+            padding: 0 0 32px;
+        }
+        .modal-handle {
+            width: 36px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 99px;
+            margin: 12px auto 0;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-title {
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .modal-close {
+            width: 28px;
+            height: 28px;
+            border-radius: 99px;
+            background: var(--surface2);
+            border: none;
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #modal-list { padding: 8px 20px; }
+        .modal-entry {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-entry:last-child { border-bottom: none; }
+        .modal-entry-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .entry-date {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: 'DM Mono', monospace;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        .entry-memo {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .entry-amount {
+            font-size: 15px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+        }
+        .entry-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .action-btn {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 14px;
+            border-radius: 99px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .action-btn.edit { background: var(--accent-blue-soft); color: var(--accent-blue); }
+        .action-btn.delete { background: var(--accent-red-soft); color: var(--accent-red); }
+        .action-btn:active { opacity: 0.7; transform: scale(0.95); }
+
+        /* ====== NAV BAR ====== */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 20px;
+            z-index: 20;
+        }
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px 24px;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s;
+        }
+        .nav-btn.active { background: var(--surface2); }
+        .nav-btn svg { width: 22px; height: 22px; }
+        .nav-btn.active svg { stroke: var(--text-primary); }
+        .nav-btn:not(.active) svg { stroke: var(--text-muted); }
+        .nav-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+        }
+        .nav-btn.active .nav-label { color: var(--text-primary); }
+        .nav-btn:not(.active) .nav-label { color: var(--text-muted); }
+
+        /* ====== LOADING / EMPTY STATES ====== */
+        .state-msg {
+            text-align: center;
+            padding: 48px 16px;
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ========== 入力画面 ========== -->
+<div id="view-input">
+    <div class="app-header">
+        <div class="header-title">家計簿 / 入力</div>
+        <div class="type-toggle">
+            <button id="type-expense" onclick="setType('支出')" class="type-btn expense-active">支出</button>
+            <button id="type-income" onclick="setType('収入')" class="type-btn inactive">収入</button>
+        </div>
+    </div>
+
+    <!-- 編集モードバナー -->
+    <div id="edit-banner" class="hidden">
+        <span class="banner-icon">✏️</span>
+        <span class="banner-text">編集モード：カテゴリーをタップして更新</span>
+        <button id="cancel-edit-btn" onclick="cancelEdit()">キャンセル</button>
+    </div>
+
+    <div class="section-padding">
+        <div class="input-card">
+            <div class="amount-area">
+                <div class="amount-label">Amount</div>
+                <div class="amount-row">
+                    <span id="currency-unit" class="currency-symbol expense">¥</span>
+                    <input type="number" id="amount" inputmode="numeric" placeholder="0">
+                </div>
+            </div>
+            <div class="meta-row">
+                <div class="meta-cell">
+                    <div class="meta-label">Date</div>
+                    <input type="date" id="date" class="meta-input">
+                </div>
+                <div class="meta-cell">
+                    <div class="meta-label">Memo</div>
+                    <input type="text" id="memo" placeholder="詳細を入力" class="meta-input">
+                </div>
+            </div>
+        </div>
+
+        <div class="cat-section">
+            <div class="cat-groups" id="category-groups"></div>
+            <div class="category-grid" id="category-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== レポート画面 ========== -->
+<div id="view-report" class="hidden">
+    <div class="report-header">
+        <div class="month-nav">
+            <button onclick="changeMonth(-1)" class="month-nav-btn">‹</button>
+            <span id="report-month">2026年4月</span>
+            <button onclick="changeMonth(1)" class="month-nav-btn">›</button>
+        </div>
+        <div class="summary-cards">
+            <div class="summary-card income">
+                <div class="summary-label">収入</div>
+                <div class="summary-value" id="total-income">¥0</div>
+            </div>
+            <div class="summary-card expense">
+                <div class="summary-label">支出</div>
+                <div class="summary-value" id="total-expense">¥0</div>
+            </div>
+            <div class="summary-card balance">
+                <div class="summary-label">収支</div>
+                <div class="summary-value" id="total-balance">¥0</div>
+            </div>
+        </div>
+    </div>
+    <div id="report-content"></div>
+</div>
+
+<!-- ========== 明細モーダル ========== -->
+<div id="modal-detail" class="hidden">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+            <span id="modal-title" class="modal-title">カテゴリー詳細</span>
+            <button onclick="closeModal()" class="modal-close">✕</button>
+        </div>
+        <div id="modal-list"></div>
+    </div>
+</div>
+
+<!-- ========== ナビゲーション ========== -->
+<nav class="nav-bar">
+    <button onclick="showView('input')" id="nav-input" class="nav-btn active">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        <span class="nav-label">入力</span>
+    </button>
+    <button onclick="showView('report')" id="nav-report" class="nav-btn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        <span class="nav-label">レポート</span>
+    </button>
+</nav>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxfAAig5eSlQmlDl46syqg7v3-AT94jdmXeXRnKT3n9Q0PFHgSAp2xz7hBMbcmuB4rKDQ/exec";
+
+    const expenseCategories = ["食費(毎変)","日用品(毎変)","交通費(毎変)","趣味·娯楽(毎変)","教養・教育(毎変)","衣服・美容(毎変)","健康・医療(毎変)","水道光熱費(毎変)","交際費(毎変)","経費(毎変)","自動車(毎変)","特別な支出(不変)","趣味・娯楽(不変)","健康・医療(不変)","衣服・美容(不変)","家具・家電(不変)","住宅(不変)","経費(不変)","教養・教育(不変)","自動車(不変)","サブスク費(毎固)","通信費(毎固)","住宅(毎固)","保険(毎固)","教養・教育(毎固)","自動車(毎固)","経費(毎固)","健康・医療(不固)","自動車(不固)","住宅(不固)","サブスク費(不固)","経費(不固)"];
+    const incomeCategories = ["給料", "副業", "その他"];
+
+    let currentType = "支出";
+    let displayDate = new Date();
+    let rawData = [];
+    let editingId = null; // ★ 編集中のID（nullなら新規登録モード）
+
+    window.onload = () => {
+        document.getElementById('date').valueAsDate = new Date();
+        updateUI();
+    };
+
+    // ====== ナビゲーション ======
+    function showView(view) {
+        document.getElementById('view-input').classList.toggle('hidden', view !== 'input');
+        document.getElementById('view-report').classList.toggle('hidden', view !== 'report');
+        document.getElementById('nav-input').classList.toggle('active', view === 'input');
+        document.getElementById('nav-report').classList.toggle('active', view === 'report');
+        if (view === 'report') fetchAndRenderReport();
+    }
+
+    // ====== レポート ======
+    async function fetchAndRenderReport() {
+        document.getElementById('report-content').innerHTML = "<p class='state-msg'>データ読み込み中…</p>";
+        try {
+            const response = await fetch(API_URL);
+            rawData = await response.json();
+            renderReport();
+        } catch (e) {
+            document.getElementById('report-content').innerHTML = "<p class='state-msg'>読み込み失敗。GASの設定を確認してください。</p>";
+        }
+    }
+
+    function renderReport() {
+        const year = displayDate.getFullYear();
+        const month = displayDate.getMonth();
+        document.getElementById('report-month').innerText = `${year}年${month + 1}月`;
+
+        const filtered = rawData.slice(1).filter(row => {
+            const d = new Date(row[0]);
+            return d.getFullYear() === year && d.getMonth() === month;
+        });
+
+        let income = 0, expense = 0;
+        const summary = {};
+
+        filtered.forEach(row => {
+            const amt = Number(row[2]);
+            const cat = row[1];
+            if (amt > 0) income += amt; else expense += Math.abs(amt);
+            summary[cat] = (summary[cat] || 0) + Math.abs(amt);
+        });
+
+        document.getElementById('total-income').innerText = `¥${income.toLocaleString()}`;
+        document.getElementById('total-expense').innerText = `¥${expense.toLocaleString()}`;
+        const bal = income - expense;
+        const balEl = document.getElementById('total-balance');
+        balEl.innerText = `¥${bal.toLocaleString()}`;
+        balEl.style.color = bal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+
+        const total = income + expense;
+        const sortedCats = Object.keys(summary).sort((a, b) => summary[b] - summary[a]);
+        const container = document.getElementById('report-content');
+        container.innerHTML = sortedCats.map(cat => `
+            <div onclick="showDetail('${cat}')" class="report-item">
+                <div class="report-item-left">
+                    <div class="report-cat-name">${cat}</div>
+                    <div class="report-bar-wrap">
+                        <div class="report-bar-fill" style="width: ${Math.min(100, (summary[cat] / (total || 1)) * 100)}%"></div>
+                    </div>
+                </div>
+                <div class="report-item-amount">¥${summary[cat].toLocaleString()}</div>
+            </div>
+        `).join('') || "<p class='state-msg'>データがありません</p>";
+    }
+
+    function showDetail(cat) {
+        const year = displayDate.getFullYear();
+        const month = displayDate.getMonth();
+        const filtered = rawData.slice(1).filter(row => {
+            const d = new Date(row[0]);
+            return d.getFullYear() === year && d.getMonth() === month && row[1] === cat;
+        }).sort((a, b) => new Date(b[0]) - new Date(a[0]));
+
+        document.getElementById('modal-title').innerText = cat;
+        document.getElementById('modal-list').innerHTML = filtered.map(row => `
+            <div class="modal-entry">
+                <div class="modal-entry-top">
+                    <div>
+                        <div class="entry-date">${new Date(row[0]).toLocaleDateString('ja-JP')}</div>
+                        <div class="entry-memo">${row[3] || '（メモなし）'}</div>
+                    </div>
+                    <div class="entry-amount">¥${Math.abs(row[2]).toLocaleString()}</div>
+                </div>
+                <div class="entry-actions">
+                    <button onclick="editEntry('${row[6]}', '${row[0]}', '${row[1]}', '${row[2]}', '${row[3] || ''}', '${row[4]}')" class="action-btn edit">編集</button>
+                    <button onclick="deleteEntry('${row[6]}')" class="action-btn delete">削除</button>
+                </div>
+            </div>
+        `).join('');
+        document.getElementById('modal-detail').classList.remove('hidden');
+    }
+
+    function closeModal() { document.getElementById('modal-detail').classList.add('hidden'); }
+    function changeMonth(diff) { displayDate.setMonth(displayDate.getMonth() + diff); renderReport(); }
+
+    // ====== 入力フォーム ======
+    function setType(type) { currentType = type; updateUI(); }
+
+    function updateUI() {
+        const isExp = currentType === "支出";
+        document.getElementById('type-expense').className = isExp ? "type-btn expense-active" : "type-btn inactive";
+        document.getElementById('type-income').className = !isExp ? "type-btn income-active" : "type-btn inactive";
+        document.getElementById('currency-unit').className = isExp ? "currency-symbol expense" : "currency-symbol income";
+        if (isExp) { renderCategoryGroups(); renderCategories("毎変"); }
+        else { document.getElementById('category-groups').innerHTML = ""; renderIncomeCategories(); }
+    }
+
+    function renderCategoryGroups() {
+        const groups = ["毎変", "不変", "毎固", "不固"];
+        document.getElementById('category-groups').innerHTML = groups.map((g, i) => `
+            <button onclick="selectGroup(this, '${g}')" class="group-btn ${i === 0 ? 'active' : ''}">${g}</button>
+        `).join('');
+    }
+
+    function selectGroup(el, filter) {
+        document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        renderCategories(filter);
+    }
+
+    function renderCategories(filter) {
+        const filtered = expenseCategories.filter(c => c.includes(filter));
+        document.getElementById('category-list').innerHTML = filtered.map(c => `
+            <button onclick="register('${c}')" class="cat-btn expense-cat">${c.replace(`(${filter})`, '')}</button>
+        `).join('');
+    }
+
+    function renderIncomeCategories() {
+        document.getElementById('category-list').innerHTML = incomeCategories.map(c => `
+            <button onclick="register('${c}')" class="cat-btn income-cat">${c}</button>
+        `).join('');
+    }
+
+    // ====== 登録・編集・削除 ======
+
+    /**
+     * ★ バグ修正ポイント ★
+     * editingId が null → 新規 POST (action: 'add')
+     * editingId が非null → 更新 POST (action: 'update', id: editingId)
+     * どちらも同じ register() を呼ぶことで、「新規登録」と「更新」を正しく分岐する
+     */
+    async function register(category) {
+        const amountInput = document.getElementById('amount');
+        const memoInput = document.getElementById('memo');
+        if (!amountInput.value) { alert("金額を入力してください"); return; }
+
+        const data = {
+            date: document.getElementById('date').value.replace(/-/g, '/'),
+            category: category,
+            amount: currentType === "支出" ? -Math.abs(amountInput.value) : Math.abs(amountInput.value),
+            memo: memoInput.value,
+            type: currentType,
+            isFixed: category.includes("固") ? 1 : 0
+        };
+
+        if (editingId !== null) {
+            // 編集モード：update アクションで既存行を上書き
+            data.action = 'update';
+            data.id = editingId;
+        } else {
+            // 新規モード
+            data.action = 'add';
+        }
+
+        const successMsg = editingId !== null ? "更新しました！" : "登録しました！";
+        amountInput.value = "";
+        memoInput.value = "";
+        cancelEdit(); // 編集状態をリセット
+
+        try {
+            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
+            if (res.ok) alert(successMsg);
+        } catch (e) { alert("通信エラーが発生しました"); }
+    }
+
+    async function deleteEntry(id) {
+        if (!confirm("この項目を削除しますか？")) return;
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'delete', id: id })
+            });
+            if (res.ok) {
+                alert("削除しました");
+                closeModal();
+                fetchAndRenderReport();
+            }
+        } catch (e) { alert("削除に失敗しました"); }
+    }
+
+    function editEntry(id, date, cat, amt, memo, type) {
+        closeModal();
+        showView('input');
+
+        // ★ 編集IDをセットする（ここがバグ修正の核心）
+        editingId = id;
+
+        // フォームに既存データをセット
+        document.getElementById('date').value = new Date(date).toISOString().split('T')[0];
+        document.getElementById('amount').value = Math.abs(amt);
+        document.getElementById('memo').value = memo !== 'undefined' ? memo : '';
+        setType(type);
+
+        // 編集モードバナーを表示
+        document.getElementById('edit-banner').classList.remove('hidden');
+    }
+
+    function cancelEdit() {
+        editingId = null;
+        document.getElementById('edit-banner').classList.add('hidden');
+    }
+</script>
+</body>
+</html>
