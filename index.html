@@ -967,6 +967,7 @@ let currentType = "支出";
 let displayDate  = new Date();
 let rawData      = [];
 let editingId    = null;
+let reportLoaded = false;
 
 /* レポートのグループ折りたたみ状態 */
 let rptCollapseState = {};
@@ -992,10 +993,12 @@ function showView(view) {
    レポート
 ================================================================ */
 async function fetchAndRenderReport() {
+    if (reportLoaded) { renderReport(); return; }
     document.getElementById('report-content').innerHTML = "<p class='state-msg'>データ読み込み中…</p>";
     try {
         const res = await fetch(API_URL);
         rawData = await res.json();
+        reportLoaded = true;
         renderReport();
     } catch(e) {
         document.getElementById('report-content').innerHTML = "<p class='state-msg'>読み込み失敗。GASの設定を確認してください。</p>";
@@ -1239,7 +1242,12 @@ async function register(category) {
 
     try {
         const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(data) });
-        if (res.ok) alert(msg);
+        const json = await res.json();
+        if (json.status === 'error') {
+            alert("保存エラーが発生しました。管理者にメールを送信しました。");
+        } else {
+            alert(msg);
+        }
     } catch(e) { alert("通信エラーが発生しました"); }
 }
 
